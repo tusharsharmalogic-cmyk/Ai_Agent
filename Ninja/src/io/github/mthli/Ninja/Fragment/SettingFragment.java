@@ -199,9 +199,6 @@ public class SettingFragment extends PreferenceFragment implements SharedPrefere
         } else if (key.equals(getString(R.string.sp_rendering))) {
             String summary = rdEntries[Integer.valueOf(sp.getString(key, "0"))];
             rendering.setSummary(summary);
-        } else if (key.equals(getString(R.string.sp_dark_theme))) {
-            NinjaToast.show(getActivity(), R.string.toast_need_restart);
-            getActivity().recreate();
         } else if (key.equals(getString(R.string.sp_cookies))) {
             CookieManager manager = CookieManager.getInstance();
             manager.setAcceptCookie(sp.getBoolean(getString(R.string.sp_cookies), true));

@@ -25,7 +25,6 @@ public class WhitelistActivity extends Activity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        io.github.mthli.Ninja.Unit.ThemeUnit.apply(this, false);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.whitelist);
         getActionBar().setDisplayHomeAsUpEnabled(true);

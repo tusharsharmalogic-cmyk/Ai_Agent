@@ -97,9 +97,6 @@
     </string>
 
     <!-- AI Agent -->
-    <string name="sp_dark_theme">
-        SP_DARK_THEME_9
-    </string>
     <string name="sp_system_prompt">
         SP_SYSTEM_PROMPT_9
     </string>

@@ -11,7 +11,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import io.github.mthli.Ninja.R;
-import io.github.mthli.Ninja.Unit.ThemeUnit;
 import io.github.mthli.Ninja.View.NinjaToast;
 
 public class SystemPromptActivity extends Activity {
@@ -19,7 +18,6 @@ public class SystemPromptActivity extends Activity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        ThemeUnit.apply(this, false);
         super.onCreate(savedInstanceState);
         getActionBar().setDisplayHomeAsUpEnabled(true);
         setTitle(R.string.setting_title_system_prompt);

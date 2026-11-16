@@ -536,12 +536,6 @@
     <string name="setting_title_ai_agent">
         AI Agent
     </string>
-    <string name="setting_title_dark_theme">
-        Dark theme
-    </string>
-    <string name="setting_summary_dark_theme">
-        Use dark theme for settings and dialogs (restart app to apply on browser screen)
-    </string>
     <string name="setting_title_system_prompt">
         System prompt
     </string>
