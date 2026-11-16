@@ -133,7 +133,19 @@ public class NinjaWebView extends WebView implements AlbumController {
 
     private synchronized void initWebSettings() {
         WebSettings webSettings = getSettings();
-        userAgentOriginal = webSettings.getUserAgentString();
+        // Google WebView ko pehchaan ke login block karta hai ("; wv" aur "Version/x.x").
+        // Isliye default UA se ye hissa hata rahe hain, taaki Chrome jaisa dikhe.
+        userAgentOriginal = webSettings.getUserAgentString()
+                .replace("; wv", "")
+                .replaceAll(" Version/\\d+\\.\\d+", "");
+
+        // Android 5+ me WebView third-party cookies by default band rakhta hai,
+        // jisse "Sign in with Google" (iframe/popup) fail ho jata hai.
+        android.webkit.CookieManager cookieManager = android.webkit.CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            cookieManager.setAcceptThirdPartyCookies(this, true);
+        }
 
         webSettings.setAllowContentAccess(true);
         webSettings.setAllowFileAccess(true);
