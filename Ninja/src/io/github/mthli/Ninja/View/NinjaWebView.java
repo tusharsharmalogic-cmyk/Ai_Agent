@@ -51,6 +51,11 @@ public class NinjaWebView extends WebView implements AlbumController {
         return adBlock;
     }
 
+    private TermuxBridge termuxBridge;
+    public TermuxBridge getTermuxBridge() {
+        return termuxBridge;
+    }
+
     private boolean foreground;
     public boolean isForeground() {
         return foreground;
@@ -80,6 +85,7 @@ public class NinjaWebView extends WebView implements AlbumController {
         this.foreground = false;
 
         this.adBlock = new AdBlock(this.context);
+        this.termuxBridge = new TermuxBridge(this.context);
         this.album = new Album(this.context, this, this.browserController);
         this.webViewClient = new NinjaWebViewClient(this);
         this.webChromeClient = new NinjaWebChromeClient(this);
@@ -110,6 +116,8 @@ public class NinjaWebView extends WebView implements AlbumController {
         setHorizontalScrollBarEnabled(false);
         setVerticalScrollBarEnabled(false);
         setScrollbarFadingEnabled(true);
+
+        addJavascriptInterface(termuxBridge, TermuxBridge.JS_NAME);
 
         setWebViewClient(webViewClient);
         setWebChromeClient(webChromeClient);

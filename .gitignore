@@ -29,3 +29,5 @@ proguard_logs/
 
 # Others
 *.directory
+__pycache__/
+*.pyc

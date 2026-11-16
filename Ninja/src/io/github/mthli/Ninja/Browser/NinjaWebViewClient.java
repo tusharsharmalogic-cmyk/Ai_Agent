@@ -53,6 +53,14 @@ public class NinjaWebViewClient extends WebViewClient {
     public void onPageStarted(WebView view, String url, Bitmap favicon) {
         super.onPageStarted(view, url, favicon);
 
+        // Bridge sirf AI chat sites ke liye on hota hai (TermuxBridge.ALLOWED_HOSTS).
+        try {
+            String host = android.net.Uri.parse(url).getHost();
+            ninjaWebView.getTermuxBridge().setCurrentHost(host);
+        } catch (Exception e) {
+            ninjaWebView.getTermuxBridge().setCurrentHost("");
+        }
+
         if (view.getTitle() == null || view.getTitle().isEmpty()) {
             ninjaWebView.update(context.getString(R.string.album_untitled), url);
         } else {
@@ -63,6 +71,8 @@ public class NinjaWebViewClient extends WebViewClient {
     @Override
     public void onPageFinished(WebView view, String url) {
         super.onPageFinished(view, url);
+
+        injectAgent(view, url);
 
         if (!ninjaWebView.getSettings().getLoadsImagesAutomatically()) {
             ninjaWebView.getSettings().setLoadsImagesAutomatically(true);
@@ -78,6 +88,45 @@ public class NinjaWebViewClient extends WebViewClient {
             ninjaWebView.invalidate();
         } else {
             ninjaWebView.postInvalidate();
+        }
+    }
+
+    // ── Termux Agent injection ────────────────────────────────────────────────
+    private static String agentJsCache = null;
+
+    private String readAsset(String name) throws java.io.IOException {
+        java.io.InputStream in = context.getAssets().open(name);
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        byte[] buf = new byte[8192];
+        int n;
+        while ((n = in.read(buf)) > 0) {
+            out.write(buf, 0, n);
+        }
+        in.close();
+        return out.toString("UTF-8");
+    }
+
+    private void injectAgent(WebView view, String url) {
+        try {
+            String host = android.net.Uri.parse(url).getHost();
+            if (!TermuxBridge.isAllowedHost(host)) {
+                return;
+            }
+
+            if (agentJsCache == null) {
+                agentJsCache = "(function(){ if (window.__termuxAgentInjected) return; "
+                        + "window.__termuxAgentInjected = true;\n"
+                        + readAsset("termux_shim.js") + "\n;\n"
+                        + readAsset("agent_userscript.js") + "\n})();";
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                view.evaluateJavascript(agentJsCache, null);
+            } else {
+                view.loadUrl("javascript:" + agentJsCache);
+            }
+        } catch (Exception e) {
+            // asset missing / bad url — browser normal chalta rahe
         }
     }
 
