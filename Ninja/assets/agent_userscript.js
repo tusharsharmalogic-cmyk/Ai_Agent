@@ -578,37 +578,88 @@
     }
 
     // ── ChatGPT Sender ────────────────────────────────────────────────────────
-    function sendToChatGPT(output) {
-        const editor = document.querySelector('div#prompt-textarea[contenteditable="true"]');
-        if (!editor) { isRunning = false; return; }
+    // ChatGPT's DOM changes often; try many editor/send-button selectors.
+    const CHATGPT_EDITOR_SELECTORS = [
+        'div#prompt-textarea[contenteditable="true"]',
+        '#prompt-textarea',
+        'div.ProseMirror[contenteditable="true"]',
+        '[data-testid="composer-input"][contenteditable="true"]',
+        'form [contenteditable="true"]',
+        'textarea#prompt-textarea',
+        'textarea[data-id="root"]',
+        'form textarea'
+    ];
 
-        let success = insertTextIntoEditor(editor, output);
+    const CHATGPT_SEND_SELECTORS = [
+        'button#composer-submit-button[data-testid="send-button"]',
+        'button[data-testid="send-button"]',
+        'button[data-testid="fruitjuice-send-button"]',
+        'button[aria-label="Send prompt"]',
+        'button[aria-label="Send message"]',
+        'button[aria-label*="Send"]',
+        'form button[type="submit"]'
+    ];
+
+    function findChatGPTEditor() {
+        for (const sel of CHATGPT_EDITOR_SELECTORS) {
+            const el = document.querySelector(sel);
+            if (el) return el;
+        }
+        return null;
+    }
+
+    function findChatGPTSendButton() {
+        for (const sel of CHATGPT_SEND_SELECTORS) {
+            const el = document.querySelector(sel);
+            if (el && el.getAttribute('aria-disabled') !== 'true' && !el.disabled) return el;
+        }
+        return null;
+    }
+
+    function sendToChatGPT(output) {
+        const editor = findChatGPTEditor();
+        if (!editor) {
+            console.log('❌ ChatGPT editor nahi mila');
+            sendToAI('❌ ChatGPT editor nahi mila. Selector update chahiye.');
+            isRunning = false;
+            return;
+        }
+
+        // Try editor insertion; if it's a <textarea>, use value setter.
+        let success = false;
+        if (editor.tagName === 'TEXTAREA') {
+            try {
+                const setter = Object.getOwnPropertyDescriptor(
+                    HTMLTextAreaElement.prototype, 'value').set;
+                setter.call(editor, output);
+                editor.dispatchEvent(new Event('input', {bubbles: true}));
+                editor.dispatchEvent(new Event('change', {bubbles: true}));
+                success = editor.value.trim().length > 0;
+            } catch (e) { success = false; }
+        }
+        if (!success) success = insertTextIntoEditor(editor, output);
         if (!success) {
             editor.textContent = output;
             editor.dispatchEvent(new InputEvent('input', {bubbles: true}));
         }
 
         setTimeout(() => {
-            let clicked = false;
-
-            let btn1 = document.querySelector('button#composer-submit-button[data-testid="send-button"]');
-            if (btn1 && btn1.getAttribute('aria-disabled') !== 'true') { btn1.click(); clicked = true; }
-
-            if (!clicked) {
-                let btn2 = document.querySelector('[data-testid="send-button"]');
-                if (btn2 && btn2.getAttribute('aria-disabled') !== 'true') { btn2.click(); clicked = true; }
+            const btn = findChatGPTSendButton();
+            if (btn) {
+                btn.click();
+            } else {
+                // Enter fallback — focus editor and press Enter
+                try {
+                    editor.focus();
+                    const opts = {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true};
+                    editor.dispatchEvent(new KeyboardEvent('keydown', opts));
+                    editor.dispatchEvent(new KeyboardEvent('keypress', opts));
+                    editor.dispatchEvent(new KeyboardEvent('keyup', opts));
+                    console.log('⚠️ Send button nahi mila — Enter fallback try kiya');
+                } catch (e) {
+                    console.log('❌ ChatGPT send button + Enter dono fail');
+                }
             }
-
-            if (!clicked) {
-                let btn3 = document.querySelector('button[aria-label="Send prompt"]');
-                if (btn3 && btn3.getAttribute('aria-disabled') !== 'true') { btn3.click(); clicked = true; }
-            }
-
-            if (!clicked) {
-                console.log('❌ ChatGPT send button nahi mila');
-                sendToAI('❌ ChatGPT send button nahi mila.');
-            }
-
             setTimeout(() => { isRunning = false; }, 3000);
         }, 1000);
     }
@@ -788,7 +839,16 @@
             }
             return 0;
         } else if (IS_CHATGPT) {
-            return document.querySelectorAll('[data-message-author-role="assistant"]').length;
+            let sels = [
+                '[data-message-author-role="assistant"]',
+                'article[data-testid^="conversation-turn-"] [data-message-author-role]',
+                '[data-testid^="conversation-turn-"]'
+            ];
+            for (let sel of sels) {
+                let n = document.querySelectorAll(sel).length;
+                if (n) return n;
+            }
+            return 0;
         } else if (IS_GEMINI) {
             return document.querySelectorAll('model-response').length;
         } else {
@@ -830,8 +890,16 @@
             }
             return null;
         } else if (IS_CHATGPT) {
-            let msgs = document.querySelectorAll('[data-message-author-role="assistant"]');
-            if (msgs.length) return msgs[msgs.length - 1];
+            let sels = [
+                '[data-message-author-role="assistant"]',
+                'article[data-testid^="conversation-turn-"] [data-message-author-role="assistant"]',
+                'div.agent-turn',
+                '[data-testid^="conversation-turn-"] .markdown'
+            ];
+            for (let sel of sels) {
+                let msgs = document.querySelectorAll(sel);
+                if (msgs.length) return msgs[msgs.length - 1];
+            }
 
             let paras = document.querySelectorAll('p[data-start][data-end]');
             if (!paras.length) return null;
@@ -876,7 +944,19 @@
         if (pres.length) {
             blocks = Array.from(pres);
         } else if (IS_CHATGPT) {
-            blocks = Array.from(el.querySelectorAll('p[data-start], code, pre'));
+            // ChatGPT Markdown: code blocks live in <pre><code class="language-*">.
+            // Also keep p[data-start] fallback for raw text blocks.
+            let preBlocks = el.querySelectorAll('pre');
+            if (preBlocks.length) {
+                blocks = Array.from(preBlocks);
+            } else {
+                let codeBlocks = el.querySelectorAll('code[class*="language-"], code');
+                if (codeBlocks.length) {
+                    blocks = Array.from(codeBlocks);
+                } else {
+                    blocks = Array.from(el.querySelectorAll('p[data-start], p'));
+                }
+            }
         } else if (IS_GEMINI) {
             blocks = Array.from(el.querySelectorAll('p[data-path-to-node], code, p'));
         }
@@ -1022,16 +1102,22 @@
             let codeEl = lastPre.querySelector('code');
             preText = (codeEl ? codeEl.textContent : lastPre.innerText).trim();
         } else if (IS_CHATGPT) {
-            let chatgptBlocks = el.querySelectorAll('pre.cm-content, pre');
+            let chatgptBlocks = el.querySelectorAll('pre');
             if (chatgptBlocks.length) {
                 lastPre = chatgptBlocks[chatgptBlocks.length - 1];
                 let codeEl = lastPre.querySelector('code');
                 preText = (codeEl ? codeEl.textContent : lastPre.innerText || lastPre.textContent).trim();
             } else {
-                let paras = el.querySelectorAll('p[data-start]');
-                if (!paras.length) return;
-                lastPre = paras[paras.length - 1];
-                preText = (lastPre.textContent || lastPre.innerText).trim();
+                let codeEls = el.querySelectorAll('code[class*="language-"], code');
+                if (codeEls.length) {
+                    lastPre = codeEls[codeEls.length - 1];
+                    preText = (lastPre.textContent || lastPre.innerText).trim();
+                } else {
+                    let paras = el.querySelectorAll('p[data-start], p');
+                    if (!paras.length) return;
+                    lastPre = paras[paras.length - 1];
+                    preText = (lastPre.textContent || lastPre.innerText).trim();
+                }
             }
         } else if (IS_GEMINI) {
             let codeBlocks = el.querySelectorAll('code, p[data-path-to-node]');
