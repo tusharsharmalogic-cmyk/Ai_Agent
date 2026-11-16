@@ -72,19 +72,56 @@ function (p) {
 
     // ── ChatGPT ──
     if (IS_CHATGPT) {
-        var pe = document.querySelector('div#prompt-textarea[contenteditable="true"]');
+        // Confirmed 2024-11 editor selectors, then legacy fallbacks.
+        var pe = document.querySelector('div[class*="RichTextInput"] [contenteditable="true"]')
+              || document.querySelector('div[class*="RichTextInput"][class*="composer"]')
+              || document.querySelector('div#prompt-textarea[contenteditable="true"]')
+              || document.querySelector('#prompt-textarea')
+              || document.querySelector('div.ProseMirror[contenteditable="true"]')
+              || document.querySelector('[data-testid="composer-input"][contenteditable="true"]')
+              || document.querySelector('form [contenteditable="true"]')
+              || document.querySelector('form textarea');
         if (!pe) { return 'noinput'; }
-        if (!insertText(pe, p)) {
+        if (pe.tagName === 'TEXTAREA') {
+            try {
+                var taSetter = Object.getOwnPropertyDescriptor(
+                    HTMLTextAreaElement.prototype, 'value').set;
+                taSetter.call(pe, p);
+                pe.dispatchEvent(new Event('input', { bubbles: true }));
+                pe.dispatchEvent(new Event('change', { bubbles: true }));
+            } catch (e) { /* ignore */ }
+        } else if (!insertText(pe, p)) {
             pe.textContent = p;
             pe.dispatchEvent(new InputEvent('input', { bubbles: true }));
         }
         setTimeout(function () {
-            var b1 = document.querySelector('button#composer-submit-button[data-testid="send-button"]');
-            if (b1 && b1.getAttribute('aria-disabled') !== 'true') { b1.click(); return; }
-            var b2 = document.querySelector('[data-testid="send-button"]');
-            if (b2 && b2.getAttribute('aria-disabled') !== 'true') { b2.click(); return; }
-            var b3 = document.querySelector('button[aria-label="Send prompt"]');
-            if (b3 && b3.getAttribute('aria-disabled') !== 'true') { b3.click(); }
+            // Confirmed 2024-11 send button first
+            var sels = [
+                'button[type="submit"][aria-label="Send"]',
+                'button[type="submit"]',
+                'button[aria-label="Send"]',
+                'button#composer-submit-button[data-testid="send-button"]',
+                'button[data-testid="send-button"]',
+                'button[data-testid="fruitjuice-send-button"]',
+                'button[aria-label="Send prompt"]',
+                'button[aria-label="Send message"]',
+                'button[aria-label*="Send"]'
+            ];
+            for (var i = 0; i < sels.length; i++) {
+                var b = document.querySelector(sels[i]);
+                if (b && b.getAttribute('aria-disabled') !== 'true' && !b.disabled) {
+                    b.click();
+                    return;
+                }
+            }
+            // Enter key fallback
+            try {
+                pe.focus();
+                var opts = {key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true};
+                pe.dispatchEvent(new KeyboardEvent('keydown', opts));
+                pe.dispatchEvent(new KeyboardEvent('keypress', opts));
+                pe.dispatchEvent(new KeyboardEvent('keyup', opts));
+            } catch (e) { /* ignore */ }
         }, 1000);
         return 'ok';
     }
