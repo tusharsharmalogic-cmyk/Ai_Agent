@@ -580,6 +580,10 @@
     // ── ChatGPT Sender ────────────────────────────────────────────────────────
     // ChatGPT's DOM changes often; try many editor/send-button selectors.
     const CHATGPT_EDITOR_SELECTORS = [
+        // Confirmed 2024-11 (RichTextInput wrapper)
+        'div[class*="RichTextInput"] [contenteditable="true"]',
+        'div[class*="RichTextInput"][class*="composer"]',
+        // Older / fallback selectors
         'div#prompt-textarea[contenteditable="true"]',
         '#prompt-textarea',
         'div.ProseMirror[contenteditable="true"]',
@@ -591,6 +595,11 @@
     ];
 
     const CHATGPT_SEND_SELECTORS = [
+        // Confirmed 2024-11
+        'button[type="submit"][aria-label="Send"]',
+        'button[type="submit"]',
+        'button[aria-label="Send"]',
+        // Older / fallback selectors
         'button#composer-submit-button[data-testid="send-button"]',
         'button[data-testid="send-button"]',
         'button[data-testid="fruitjuice-send-button"]',
@@ -840,6 +849,9 @@
             return 0;
         } else if (IS_CHATGPT) {
             let sels = [
+                // Confirmed 2024-11: assistant messages live in MarkdownRoot
+                '[class*="MarkdownRoot"]',
+                // Older / fallback selectors
                 '[data-message-author-role="assistant"]',
                 'article[data-testid^="conversation-turn-"] [data-message-author-role]',
                 '[data-testid^="conversation-turn-"]'
@@ -891,6 +903,9 @@
             return null;
         } else if (IS_CHATGPT) {
             let sels = [
+                // Confirmed 2024-11: each assistant response has a MarkdownRoot wrapper
+                '[class*="MarkdownRoot"]',
+                // Older / fallback selectors
                 '[data-message-author-role="assistant"]',
                 'article[data-testid^="conversation-turn-"] [data-message-author-role="assistant"]',
                 'div.agent-turn',
@@ -944,13 +959,18 @@
         if (pres.length) {
             blocks = Array.from(pres);
         } else if (IS_CHATGPT) {
-            // ChatGPT Markdown: code blocks live in <pre><code class="language-*">.
-            // Also keep p[data-start] fallback for raw text blocks.
+            // Confirmed 2024-11 DOM: <pre><code> still works for most code blocks,
+            // but ChatGPT also renders some via CodeContent/InlineCodePane.
             let preBlocks = el.querySelectorAll('pre');
             if (preBlocks.length) {
                 blocks = Array.from(preBlocks);
             } else {
-                let codeBlocks = el.querySelectorAll('code[class*="language-"], code');
+                let codeBlocks = el.querySelectorAll(
+                    'code[class*="CodeContent"], ' +
+                    '[class*="InlineCodePane"] code, ' +
+                    'code[class*="language-"], ' +
+                    'code'
+                );
                 if (codeBlocks.length) {
                     blocks = Array.from(codeBlocks);
                 } else {
@@ -1102,15 +1122,23 @@
             let codeEl = lastPre.querySelector('code');
             preText = (codeEl ? codeEl.textContent : lastPre.innerText).trim();
         } else if (IS_CHATGPT) {
+            // Confirmed 2024-11 DOM: code blocks still use <pre><code>,
+            // but ChatGPT also renders some blocks as CodeContent/InlineCodePane.
             let chatgptBlocks = el.querySelectorAll('pre');
             if (chatgptBlocks.length) {
                 lastPre = chatgptBlocks[chatgptBlocks.length - 1];
                 let codeEl = lastPre.querySelector('code');
                 preText = (codeEl ? codeEl.textContent : lastPre.innerText || lastPre.textContent).trim();
             } else {
-                let codeEls = el.querySelectorAll('code[class*="language-"], code');
-                if (codeEls.length) {
-                    lastPre = codeEls[codeEls.length - 1];
+                // Structured code block (new ChatGPT renderer)
+                let codeContent = el.querySelectorAll(
+                    'code[class*="CodeContent"], ' +
+                    'code[class*="language-"], ' +
+                    '[class*="InlineCodePane"] code, ' +
+                    'code'
+                );
+                if (codeContent.length) {
+                    lastPre = codeContent[codeContent.length - 1];
                     preText = (lastPre.textContent || lastPre.innerText).trim();
                 } else {
                     let paras = el.querySelectorAll('p[data-start], p');
