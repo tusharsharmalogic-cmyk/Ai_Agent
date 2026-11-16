@@ -76,6 +76,7 @@ public class BrowserActivity extends Activity implements BrowserController {
     private ImageButton omniboxBookmark;
     private ImageButton omniboxRefresh;
     private ImageButton omniboxOverflow;
+    private android.widget.TextView omniboxAgentBadge;
     private ProgressBar progressBar;
 
     private RelativeLayout searchPanel;
@@ -419,7 +420,9 @@ public class BrowserActivity extends Activity implements BrowserController {
         omniboxBookmark = (ImageButton) findViewById(R.id.main_omnibox_bookmark);
         omniboxRefresh = (ImageButton) findViewById(R.id.main_omnibox_refresh);
         omniboxOverflow = (ImageButton) findViewById(R.id.main_omnibox_overflow);
+        omniboxAgentBadge = (android.widget.TextView) findViewById(R.id.main_omnibox_agent_badge);
         progressBar = (ProgressBar) findViewById(R.id.main_progress_bar);
+        updateAgentBadge();
 
         inputBox.setOnTouchListener(new SwipeToBoundListener(omnibox, new SwipeToBoundListener.BoundCallback() {
             private KeyListener keyListener = inputBox.getKeyListener();
@@ -1105,6 +1108,7 @@ public class BrowserActivity extends Activity implements BrowserController {
         if (currentAlbumController == null) {
             return;
         }
+        updateAgentBadge();
 
         if (currentAlbumController instanceof NinjaRelativeLayout) {
             updateProgress(BrowserUnit.PROGRESS_MAX);
@@ -1495,6 +1499,22 @@ public class BrowserActivity extends Activity implements BrowserController {
                 || url.contains("chatgpt.com") || url.contains("gemini.google.com");
     }
 
+    private boolean isAgentPaused() {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        return sp.getBoolean(getString(R.string.sp_agent_paused), false);
+    }
+
+    private void updateAgentBadge() {
+        if (omniboxAgentBadge == null) {
+            return;
+        }
+        // Badge sirf AI site pe aur sirf paused state me dikhta hai.
+        boolean showBadge = isAgentPaused()
+                && currentAlbumController instanceof NinjaWebView
+                && isAiSite(((NinjaWebView) currentAlbumController).getUrl());
+        omniboxAgentBadge.setVisibility(showBadge ? View.VISIBLE : View.GONE);
+    }
+
     private void pasteSystemPrompt() {
         SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         String prompt = sp.getString(getString(R.string.sp_system_prompt), "");
@@ -1565,9 +1585,13 @@ public class BrowserActivity extends Activity implements BrowserController {
         }
 
         final String spItem = getString(R.string.system_prompt_menu_item);
+        final String agentToggleItem = getString(isAgentPaused()
+                ? R.string.agent_resume_menu_item
+                : R.string.agent_pause_menu_item);
         if (currentAlbumController instanceof NinjaWebView
                 && isAiSite(((NinjaWebView) currentAlbumController).getUrl())) {
             stringList.add(Math.max(0, stringList.size() - 1), spItem);
+            stringList.add(Math.max(0, stringList.size() - 1), agentToggleItem);
         }
 
         ListView listView = (ListView) layout.findViewById(R.id.dialog_list);
@@ -1710,6 +1734,11 @@ public class BrowserActivity extends Activity implements BrowserController {
                     gridView.startEditMode();
                 } else if (s.equals(spItem)) { // Paste system prompt
                     pasteSystemPrompt();
+                } else if (s.equals(agentToggleItem)) { // Pause / Resume agent
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(BrowserActivity.this);
+                    boolean nowPaused = !isAgentPaused();
+                    prefs.edit().putBoolean(getString(R.string.sp_agent_paused), nowPaused).commit();
+                    updateAgentBadge();
                 } else if (s.equals(array[7])) { // Quit
                     finish();
                 }

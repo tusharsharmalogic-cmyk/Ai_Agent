@@ -2,7 +2,11 @@ package io.github.mthli.Ninja.Browser;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.webkit.JavascriptInterface;
+
+import io.github.mthli.Ninja.R;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -76,6 +80,21 @@ public class TermuxBridge {
     @JavascriptInterface
     public boolean isAvailable() {
         return allowed();
+    }
+
+    /**
+     * True jab user ne 3-dot menu se "Pause agent" kiya ho.
+     * Userscript ise har action se pehle check karta hai.
+     */
+    @JavascriptInterface
+    public boolean isAgentPaused() {
+        if (!allowed()) return false;
+        try {
+            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(context);
+            return sp.getBoolean(context.getString(R.string.sp_agent_paused), false);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /** Clears the live-run files before a new /run so stale results are never read. */

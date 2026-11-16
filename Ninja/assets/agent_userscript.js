@@ -1067,6 +1067,25 @@
         if (processedFps.has(scopedFp)) return;
         processedFps.add(scopedFp);
 
+        // ── Pause gate: user ne 3-dot menu se "Pause agent" kiya hai? ──────
+        // Synchronous bridge call (SharedPreferences read), instant.
+        // Paused ho to block ko consumed mark karo taaki resume pe stale
+        // command dobara execute na ho. Sirf naye commands capture honge.
+        let agentPaused = false;
+        try {
+            agentPaused = !!(window.TermuxBridge
+                && typeof TermuxBridge.isAgentPaused === 'function'
+                && TermuxBridge.isAgentPaused());
+        } catch (e) { agentPaused = false; }
+
+        if (agentPaused) {
+            markExecuted(lastPre);
+            stableCount  = 0;
+            lastTextSeen = '';
+            console.log(`⏸ [msg:${msgCount}] Agent paused — skipped ${action.type}`);
+            return;
+        }
+
         markExecuted(lastPre);
 
         stableCount  = 0;

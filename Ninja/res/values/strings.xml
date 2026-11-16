@@ -555,6 +555,16 @@
         System prompt pasted
     </string>
 
+    <string name="agent_pause_menu_item">
+        Pause agent
+    </string>
+    <string name="agent_resume_menu_item">
+        Resume agent
+    </string>
+    <string name="agent_paused_badge">
+        AGENT OFF
+    </string>
+
     <string name="system_prompt_save">
         Save
     </string>

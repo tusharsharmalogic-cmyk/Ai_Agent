@@ -100,6 +100,9 @@
     <string name="sp_system_prompt">
         SP_SYSTEM_PROMPT_9
     </string>
+    <string name="sp_agent_paused">
+        SP_AGENT_PAUSED_9
+    </string>
 
     <string name="sp_last_url">
         SP_LAST_URL_9
