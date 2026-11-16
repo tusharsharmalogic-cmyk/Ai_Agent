@@ -70,7 +70,7 @@ jobs:
               defaultConfig {
                   minSdkVersion 16
                   targetSdkVersion 22
-                  versionCode 26
+                  versionCode 100 + Integer.parseInt(System.getenv('RUN_NUMBER') ?: '0')
                   versionName '1.0'
               }
 
@@ -80,6 +80,23 @@ jobs:
                       java.srcDirs = ['src']
                       res.srcDirs = ['res']
                       assets.srcDirs = ['assets']
+                  }
+              }
+
+              signingConfigs {
+                  ninja {
+                      storeFile file(System.getenv('KEYSTORE_FILE') ?: 'missing.p12')
+                      storePassword System.getenv('KEYSTORE_PASSWORD')
+                      keyAlias 'ninja'
+                      keyPassword System.getenv('KEYSTORE_PASSWORD')
+                  }
+              }
+
+              buildTypes {
+                  debug {
+                      if (System.getenv('KEYSTORE_PASSWORD')) {
+                          signingConfig signingConfigs.ninja
+                      }
                   }
               }
 
@@ -94,7 +111,22 @@ jobs:
           }
           EOF
 
+      - name: Prepare signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/ninja.p12"
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/ninja.p12" >> "$GITHUB_ENV"
+            echo "Signing key found: APK will use the permanent key."
+          else
+            echo "::warning::KEYSTORE_B64 secret missing - APK will use a random debug key."
+          fi
+
       - name: Build debug APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: gradle :app:assembleDebug --stacktrace
 
       - name: Upload APK
