@@ -4,6 +4,12 @@
 
     <PreferenceCategory android:title="@string/setting_title_browser">
 
+        <CheckBoxPreference android:key="@string/sp_dark_theme"
+                            android:defaultValue="false"
+                            android:title="@string/setting_title_dark_theme"
+                            android:summary="@string/setting_summary_dark_theme">
+        </CheckBoxPreference>
+
         <io.github.mthli.Ninja.View.SearchEngineListPreference
                 android:key="@string/sp_search_engine"
                 android:defaultValue="0"
@@ -132,6 +138,14 @@
 
         <Preference android:title="@string/setting_title_token"
                     android:summary="@string/setting_summary_token">
+        </Preference>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/setting_title_ai_agent">
+
+        <Preference android:title="@string/setting_title_system_prompt"
+                    android:summary="@string/setting_summary_system_prompt">
         </Preference>
 
     </PreferenceCategory>

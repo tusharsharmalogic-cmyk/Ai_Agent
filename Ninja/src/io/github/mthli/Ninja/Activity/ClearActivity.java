@@ -20,6 +20,7 @@ public class ClearActivity extends Activity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        io.github.mthli.Ninja.Unit.ThemeUnit.apply(this, false);
         super.onCreate(savedInstanceState);
         getActionBar().setDisplayHomeAsUpEnabled(true);
 

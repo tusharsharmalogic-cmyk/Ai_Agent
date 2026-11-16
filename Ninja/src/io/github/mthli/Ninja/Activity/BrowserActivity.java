@@ -122,6 +122,7 @@ public class BrowserActivity extends Activity implements BrowserController {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        io.github.mthli.Ninja.Unit.ThemeUnit.apply(this, true);
         super.onCreate(savedInstanceState);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             ActivityManager.TaskDescription description = new ActivityManager.TaskDescription(
@@ -230,7 +231,12 @@ public class BrowserActivity extends Activity implements BrowserController {
                 pinAlbums(BrowserUnit.BASE_URL + lang);
                 sp.edit().putBoolean(getString(R.string.sp_first), false).commit();
             } else {
-                pinAlbums(null);
+                String last = sp.getString(getString(R.string.sp_last_url), null);
+                if (BrowserContainer.size() < 1 && last != null && !last.trim().isEmpty()) {
+                    pinAlbums(last);
+                } else {
+                    pinAlbums(null);
+                }
             }
         }
     }
@@ -256,8 +262,18 @@ public class BrowserActivity extends Activity implements BrowserController {
             }
         }
 
+        saveLastUrl();
         IntentUnit.setContext(this);
         super.onPause();
+    }
+
+    private void saveLastUrl() {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        String url = null;
+        if (currentAlbumController != null && currentAlbumController instanceof NinjaWebView) {
+            url = ((NinjaWebView) currentAlbumController).getUrl();
+        }
+        sp.edit().putString(getString(R.string.sp_last_url), url).commit();
     }
 
     @Override
@@ -1472,6 +1488,53 @@ public class BrowserActivity extends Activity implements BrowserController {
         showSoftInput(searchBox);
     }
 
+    private boolean isAiSite(String url) {
+        if (url == null) {
+            return false;
+        }
+        return url.contains("chat.deepseek.com") || url.contains("claude.ai")
+                || url.contains("chatgpt.com") || url.contains("gemini.google.com");
+    }
+
+    private void pasteSystemPrompt() {
+        SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
+        String prompt = sp.getString(getString(R.string.sp_system_prompt), "");
+        if (prompt == null || prompt.trim().isEmpty()) {
+            NinjaToast.show(this, R.string.system_prompt_empty);
+            return;
+        }
+        if (!(currentAlbumController instanceof NinjaWebView)) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+            NinjaToast.show(this, R.string.system_prompt_unsupported);
+            return;
+        }
+        try {
+            java.io.InputStream in = getAssets().open("system_prompt_inject.js");
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            int n;
+            while ((n = in.read(buf)) > 0) {
+                out.write(buf, 0, n);
+            }
+            in.close();
+            String js = "(" + out.toString("UTF-8") + ")(" + org.json.JSONObject.quote(prompt) + ")";
+            ((NinjaWebView) currentAlbumController).evaluateJavascript(js, new ValueCallback<String>() {
+                @Override
+                public void onReceiveValue(String value) {
+                    if (value != null && value.contains("noinput")) {
+                        NinjaToast.show(BrowserActivity.this, R.string.system_prompt_no_input);
+                    } else {
+                        NinjaToast.show(BrowserActivity.this, R.string.system_prompt_sent);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            NinjaToast.show(this, R.string.system_prompt_no_input);
+        }
+    }
+
     private boolean showOverflow() {
         final SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(this);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -1500,6 +1563,12 @@ public class BrowserActivity extends Activity implements BrowserController {
                 stringList.remove(array[4]); // Readability
             }
             stringList.remove(array[6]); // Relayout
+        }
+
+        final String spItem = getString(R.string.system_prompt_menu_item);
+        if (currentAlbumController instanceof NinjaWebView
+                && isAiSite(((NinjaWebView) currentAlbumController).getUrl())) {
+            stringList.add(Math.max(0, stringList.size() - 1), spItem);
         }
 
         ListView listView = (ListView) layout.findViewById(R.id.dialog_list);
@@ -1640,6 +1709,8 @@ public class BrowserActivity extends Activity implements BrowserController {
                         }
                     });
                     gridView.startEditMode();
+                } else if (s.equals(spItem)) { // Paste system prompt
+                    pasteSystemPrompt();
                 } else if (s.equals(array[7])) { // Quit
                     finish();
                 }

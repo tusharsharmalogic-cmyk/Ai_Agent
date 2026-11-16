@@ -532,4 +532,46 @@
         Add
     </string>
 
+    <!-- AI Agent -->
+    <string name="setting_title_ai_agent">
+        AI Agent
+    </string>
+    <string name="setting_title_dark_theme">
+        Dark theme
+    </string>
+    <string name="setting_summary_dark_theme">
+        Use dark theme for settings and dialogs (restart app to apply on browser screen)
+    </string>
+    <string name="setting_title_system_prompt">
+        System prompt
+    </string>
+    <string name="setting_summary_system_prompt">
+        Set a prompt that can be pasted and sent from the 3-dots menu on AI chat sites
+    </string>
+    <string name="system_prompt_menu_item">
+        Paste system prompt
+    </string>
+    <string name="system_prompt_empty">
+        System prompt is empty. Set it in Settings first.
+    </string>
+    <string name="system_prompt_saved">
+        System prompt saved
+    </string>
+    <string name="system_prompt_sent">
+        System prompt pasted
+    </string>
+
+    <string name="system_prompt_save">
+        Save
+    </string>
+    <string name="system_prompt_hint">
+        Write your system prompt here
+    </string>
+    <string name="system_prompt_no_input">
+        Chat input box not found on this page
+    </string>
+    <string name="system_prompt_unsupported">
+        Needs Android 4.4 or newer
+    </string>
+
 </resources>

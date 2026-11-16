@@ -86,6 +86,13 @@
                   android:theme="@style/TokenActivityTheme">
         </activity>
 
+        <!-- SystemPromptActivity -->
+        <activity android:name=".Activity.SystemPromptActivity"
+                  android:label="@string/setting_title_system_prompt"
+                  android:theme="@style/SettingActivityTheme"
+                  android:windowSoftInputMode="adjustResize">
+        </activity>
+
         <!-- ClearActivity -->
         <activity android:name=".Activity.ClearActivity"
                   android:label="@string/clear_label"

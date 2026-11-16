@@ -149,6 +149,9 @@ public class SettingFragment extends PreferenceFragment implements SharedPrefere
                 Intent clearControl = new Intent(getActivity(), ClearActivity.class);
                 getActivity().startActivityForResult(clearControl, IntentUnit.REQUEST_CLEAR);
                 break;
+            case R.string.setting_title_system_prompt:
+                getActivity().startActivity(new Intent(getActivity(), io.github.mthli.Ninja.Activity.SystemPromptActivity.class));
+                break;
             case R.string.setting_title_version:
                 NinjaToast.show(getActivity(), R.string.toast_emoji);
                 break;
@@ -196,6 +199,9 @@ public class SettingFragment extends PreferenceFragment implements SharedPrefere
         } else if (key.equals(getString(R.string.sp_rendering))) {
             String summary = rdEntries[Integer.valueOf(sp.getString(key, "0"))];
             rendering.setSummary(summary);
+        } else if (key.equals(getString(R.string.sp_dark_theme))) {
+            NinjaToast.show(getActivity(), R.string.toast_need_restart);
+            getActivity().recreate();
         } else if (key.equals(getString(R.string.sp_cookies))) {
             CookieManager manager = CookieManager.getInstance();
             manager.setAcceptCookie(sp.getBoolean(getString(R.string.sp_cookies), true));
