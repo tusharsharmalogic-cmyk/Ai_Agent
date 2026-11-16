@@ -24,6 +24,9 @@
                  android:enabled="true"
                  android:largeHeap="true">
 
+        <!-- Allow full-screen on tall (20:9) displays, no letterbox bars -->
+        <meta-data android:name="android.max_aspect" android:value="2.6" />
+
         <!-- HolderActivity -->
         <activity android:name=".Activity.HolderActivity"
                   android:label="@string/app_name"
