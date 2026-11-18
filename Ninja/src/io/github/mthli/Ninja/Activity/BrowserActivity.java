@@ -36,6 +36,7 @@ import android.webkit.WebView;
 import android.widget.*;
 import io.github.mthli.Ninja.Browser.AdBlock;
 import io.github.mthli.Ninja.Browser.AlbumController;
+import io.github.mthli.Ninja.Browser.RedirectAdBlocker;
 import io.github.mthli.Ninja.Browser.BrowserContainer;
 import io.github.mthli.Ninja.Browser.BrowserController;
 import io.github.mthli.Ninja.Service.ClearService;
@@ -1594,6 +1595,19 @@ public class BrowserActivity extends Activity implements BrowserController {
             stringList.add(Math.max(0, stringList.size() - 1), agentToggleItem);
         }
 
+        // TUXORA: dynamic label for redirect+popup blocker toggle.
+        final String redirectToggleItem = getString(
+                RedirectAdBlocker.isEnabled(this)
+                        ? R.string.menu_redirect_toggle_on
+                        : R.string.menu_redirect_toggle_off);
+        for (int i = 0; i < stringList.size(); i++) {
+            String s = stringList.get(i);
+            if (s != null && s.startsWith("AdBlock: Redirects+Popups")) {
+                stringList.set(i, redirectToggleItem);
+                break;
+            }
+        }
+
         ListView listView = (ListView) layout.findViewById(R.id.dialog_list);
         DialogAdapter dialogAdapter = new DialogAdapter(this, R.layout.dialog_text_item, stringList);
         listView.setAdapter(dialogAdapter);
@@ -1739,7 +1753,14 @@ public class BrowserActivity extends Activity implements BrowserController {
                     boolean nowPaused = !isAgentPaused();
                     prefs.edit().putBoolean(getString(R.string.sp_agent_paused), nowPaused).commit();
                     updateAgentBadge();
-                } else if (s.equals(array[7])) { // Quit
+                } else if (s.startsWith("AdBlock: Redirects+Popups")) { // Toggle redirect+popup blocker
+                    SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(BrowserActivity.this);
+                    boolean newState = !RedirectAdBlocker.isEnabled(BrowserActivity.this);
+                    prefs.edit().putBoolean(getString(R.string.sp_redirect_block), newState).commit();
+                    NinjaToast.show(BrowserActivity.this, newState
+                            ? R.string.toast_redirect_enabled
+                            : R.string.toast_redirect_disabled);
+                } else if (s.equals(array[8])) { // Quit
                     finish();
                 }
 

@@ -126,6 +126,18 @@ public class NinjaWebView extends WebView implements AlbumController {
             @Override
             public boolean onTouch(View view, MotionEvent motionEvent) {
                 gestureDetector.onTouchEvent(motionEvent);
+                // TUXORA: remember the page host at the moment of a real tap
+                // so NinjaWebViewClient can distinguish genuine user clicks
+                // from silent JS-driven redirect traps.
+                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                    try {
+                        RedirectAdBlocker b = webViewClient.getRedirectAdBlocker();
+                        if (b != null) {
+                            String host = android.net.Uri.parse(getUrl()).getHost();
+                            b.onUserClick(host);
+                        }
+                    } catch (Exception ignored) {}
+                }
                 return false;
             }
         });

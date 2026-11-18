@@ -313,7 +313,31 @@
         AdBlock
     </string>
     <string name="setting_summary_adblock">
-        Enable AdBlock
+        Enable AdBlock (legacy host file)
+    </string>
+    <string name="setting_title_redirect_block">
+        Redirect / Popup Blocker
+    </string>
+    <string name="setting_summary_redirect_block">
+        Blocks popup ads and download-button redirect traps
+    </string>
+    <string name="toast_redirect_blocked">
+        🚫 Ad redirect blocked
+    </string>
+    <string name="toast_popup_blocked">
+        🚫 Popup blocked
+    </string>
+    <string name="menu_redirect_toggle_on">
+        AdBlock: Redirects+Popups [ON]
+    </string>
+    <string name="menu_redirect_toggle_off">
+        AdBlock: Redirects+Popups [OFF]
+    </string>
+    <string name="toast_redirect_enabled">
+        Redirect + Popup blocker ON
+    </string>
+    <string name="toast_redirect_disabled">
+        Redirect + Popup blocker OFF
     </string>
     <string name="setting_title_whitelist">
         Whitelist

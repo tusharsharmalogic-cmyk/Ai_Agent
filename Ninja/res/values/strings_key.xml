@@ -108,4 +108,9 @@
         SP_LAST_URL_9
     </string>
 
+    <!-- TUXORA Redirect / Popup Ad Blocker -->
+    <string name="sp_redirect_block">
+        SP_REDIRECT_BLOCK_1
+    </string>
+
 </resources>

@@ -16,6 +16,16 @@ public class NinjaWebChromeClient extends WebChromeClient {
 
     @Override
     public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
+        // TUXORA: block programmatic popups (window.open() and target=_blank
+        // fired without a real user tap). Popups that DO come from a genuine
+        // tap are still allowed — the app's normal new-tab flow handles them.
+        if (!isUserGesture && RedirectAdBlocker.isEnabled(view.getContext())) {
+            try {
+                io.github.mthli.Ninja.View.NinjaToast.show(
+                        view.getContext(), io.github.mthli.Ninja.R.string.toast_popup_blocked);
+            } catch (Exception ignored) {}
+            return false;
+        }
         ninjaWebView.getBrowserController().onCreateView(view, resultMsg);
         return isUserGesture;
     }

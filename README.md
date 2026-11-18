@@ -1,150 +1,64 @@
-Ninja
-===
+# TUXORA
 
-![background.png](/Art/screenshot/background.png "background.png")
+An Android browser that runs an **AI agent loop entirely on your phone**.
 
-Yet another web browser for Android.
+TUXORA is a heavily modified fork of [Ninja](https://github.com/mthli/Ninja) by mthli (Apache 2.0). Ninja's classic browsing shell is still here — but the entire point of this fork is the **Termux AI-agent bridge**: the browser can talk to your filesystem and shell, and an AI (ChatGPT / Claude / DeepSeek / Gemini) can drive it from inside the page.
 
-[Ninja in 酷安](http://coolapk.com/apk/io.github.mthli.Ninja "Ninja网络浏览器")
+No cloud. No server port. No extension. Just your browser, your AI tab, and your shell — all one loop.
 
-[Ninja in 少数派](http://sspai.com/29245 "轻快到能上天下地，强悍到能四两拨千斤：Ninja 网络浏览器")
+---
 
-[Ninja in 小众软件](http://www.appinn.com/ninja-for-android/ "Ninja：可以在后台打开网页的 Android 浏览器")
+## What this fork adds (and only this)
 
-[Download latest Ninja.apk](https://github.com/mthli/Ninja/releases/download/v1.3.4/Ninja.1.3.4.apk "Ninja.1.3.4.apk")
+### 🔌 Serverless Termux bridge
+- Java **`TermuxBridge`** interface + **`agent_cli.py`** adapter — the browser talks to Termux through a shared directory at `/sdcard/.termux_agent/` (`req_<id>.json`, `res_<id>.json`, `run.out`, `run.meta`, `run.input`, `run.kill`).
+- **No Flask port is exposed.** `agent.py` is driven in-process via Flask's test client — every endpoint (`/run`, `/read`, `/write`, `/edit`, `/append`, `/delete`, `/move`, `/copy`, `/list`, `/mkdir`, `/info`, `/find`, `/grep`, `/head`, `/tail`, `/pdf`, `/status`) behaves exactly like the original Flask app, with zero duplicated logic.
+- **Live command streaming** — output is tailed from `run.out` while the command runs; stdin prompts (`[y/n]`, `Password:`, `Login:`) are answered from the browser via `run.input`, and `run.kill` hard-stops the current process.
 
-__SUPPORT: Android 4.1+__
+### 🤖 Automated AI ↔ Termux loop
+- Injected **userscript shim** parses `<pre>` code blocks from AI responses (`EDIT_FILE`, `WRITE_FILE`, `READ_FILE`, `APPEND_FILE`, `DELETE_FILE`, `MOVE_FILE`, `COPY_FILE`, `LIST_DIR`, `MAKE_DIR`, `FILE_INFO`, `FIND_FILE`, `GREP`, `HEAD`, `TAIL`, `RUN_CMD`, `RUN_CMD_START/END`), executes them in Termux, and feeds the result back to the AI as the next message.
+- Deduped by code-block fingerprint + 2-cycle stability wait, so streaming/re-renders never double-execute.
 
-__LONG TERM MAINTENANCE.__
+### 🎯 Per-site DOM selector packs
+- **ChatGPT (current DOM)** — `MarkdownRoot`, `RichTextInput` editor, `aria-label="Send"` button, `CodeContent` code blocks, Enter-key fallback.
+- **Claude / DeepSeek / Gemini** — matching selector sets kept in sync with the injected system prompt.
+- Robust editor / send-button / message-detection / code-block extraction so a cosmetic site change doesn't silently break the agent.
 
-__BUT I HAVE TO PREPARE FOR THE FINIAL EXAM, SO SUSPENDED DEVELOPMENT__.
+### ⚙️ Agent controls in the UI
+- **System prompt injector** — paste / edit / inject the agent's system prompt directly from the 3-dot overflow menu.
+- **Pause / Resume agent toggle** — 3-dot menu switch with a clear **`AGENT OFF`** badge when paused.
+- **Resume last site on restart** — reopen the last-used AI site instead of a blank page.
 
-## Features:
+### 🌐 Compatibility & layout
+- **Chrome-like User-Agent + third-party cookies enabled** — Google login finally works.
+- **`android.max_aspect` declared** — kills the bottom blank bar on tall / notch screens.
 
- - Open links in background without ever leaving your favorite apps.
+### 🏗️ Build & CI
+- **GitHub Actions workflow** builds an APK on every push.
+- **Signed debug APK from permanent key** stored in repo secrets, so installs upgrade in place.
+- **Auto-incrementing `versionCode`** per build.
+- **JDK 17** + `setup-java v5` for `sdkmanager`.
 
- - Lightweight and no extra permissions.
+### 🎨 Rebrand
+- App renamed to **TUXORA** with a new launcher icon.
 
- - Custom home.
+---
 
- - Fashion tab switcher.
+## What it still is underneath
+Ninja's original browsing shell is untouched: open links in background, custom home, fashion tab switcher, AdBlock + whitelist, Readability, whole-page screenshot, custom volume control, etc. — see the upstream [Ninja README](https://github.com/mthli/Ninja) for the full classic feature set.
 
- - [html5test](html5test.com "html5test.com") access __509UP__ with latest [Android System WebView](https://play.google.com/store/apps/details?id=com.google.android.webview "Android System WebView").
+## How to build
+- **Push to your fork** → GitHub Actions builds a signed debug APK automatically.
+- **Local** → open the `Ninja/` folder in IntelliJ IDEA / Android Studio (classic Ninja build path).
 
- - __Adblock__ and whitelist.
+## How to use the AI loop
+1. Install the APK.
+2. Install **Termux** + `python`, `flask`.
+3. Put `agent.py` + `agent_cli.py` under `~/Ai-agent-script/` (or the same directory — `agent_cli.py` auto-discovers it).
+4. In TUXORA, open ChatGPT / Claude / DeepSeek / Gemini.
+5. From the 3-dot menu, set the system prompt, and let the AI drive.
 
- - __Readability__.
+Every AI reply containing a `<pre>` action block gets executed in Termux, and the output is sent back to the AI — the loop runs until you pause it.
 
- - Capture whole page screenshot.
-
- - Custom volume control.
-
- - Webpage go to top easy.
-
- - More features coming soon...
-
-## How to use Ninja?
-
-Basically Ninja is a simple web browser like any others, but there are some different things you need to know:
-
-### Custom home:
-
- - First login Ninja, home show as `about:blank`.
-
- - Use the overflow menu's __Add to home__ to pin webpages.
-
- - Use the overflow menu's __Relayout__ to custom your home.
-
- - __Long press__ on a card of home, you can edit it title.
-
-### Switch tabs:
-
- - You can set tab switcher position in __screen top or screen bottom__ at `Setting/Browser/Tab Position`.
-
- - Press the __address bar__ and __drag it down or up__, then the fashion tab switcher will display.
-
- - __Swipe up/down__ to dimiss a page.
-
- - Or just __swipe the omnibox left/right__ to switch tab :)
-
-The __Settings__ is located in the top or bottom left of tab switcher, the __gear__ icon.
-
-__Remember__ that if the soft keyboard is shown the tab switcher would not works, it's our design :)
-
-### Load in background when you click links in other App:
-
- 1. Set Ninja as your __default browser__ when click links.
-
- 2. __Single tap__ will open links in background, and show a clickable notification in statusbar.
-
- 3. __Double taps__ will show a dialog that allows you to open links in foreground, etc.
-
-### AdBlock whitelist:
-
-Since AdBlick maybe cause some websites display error, you can add they to `Setting/AdBlock/Whitelist`.
-
-### Readability:
-
-Ninja support read mode but it need __the token of Readability__.
-
-To get the token you should go to [Readability Developer APIs](https://www.readability.com/developers/api "Readability Developer APIs") to get your own token and set it in `Setting/Readability/Token`.
-
-### Screenshot:
-
-Ninja supports __capture entire webpage__ function.
-
-But that is not means you could screenshot a long long long webpage(__OOM__, etc).
-
-## Q&A:
-
-### Where is the AdBlock's hosts.txt comes from?
-
-We don't use the AdBlock Plus' Easylist.
-
-The `hosts.txt` comes from [hpHosts](http://hosts-file.net/ad_servers.txt "hpHosts").
-
-### Why no incognito mode?
-
-Incognito mode is a necessary feature for a web browser, but since `WebView(Context context, AttributeSet attrs, int defStyleAttr, boolean privateBrowsing)` was __deprecated__ in API level 17 and no longer supported, the incognito mode is __conflict__ with our UI design, so we stop it(but maybe restart to develop it someday). If you want to add incognito mode you can fork our sourse code and do it by yourself :)
-
-### Why not Google Play?
-
-![reject.png](/Art/info/reject.png "reject.png")
-
-### What can I do for Ninja?
-
- - New design launcher icon(must be 512px * 512px).
-
- - Translate `ninja_introduction_en.md` at [this link](https://github.com/mthli/Ninja/blob/master/Ninja/assets/ninja_introduction_en.md "ninja_introduction_en.md")
-
- - Translate `strings.xml` at [this link](https://github.com/mthli/Ninja/blob/master/Ninja/res/values/strings.xml "strings.xml").
-
- - Fix bugs and add awesome features.
-
- - Fork and pull request is welcome all time :)
-
-## How to use the source code?
-
-Just import the `Ninja` folder with your __IntelliJ IDEA__.
-
-## Derivatives:
-
- - [UltimateBrowserProject](https://github.com/balzathor/UltimateBrowserProject "UltimateBrowserProject")
-
-## Thanks:
-
- - [AndroidSlidingUpPanel](https://github.com/umano/AndroidSlidingUpPanel "AndroidSlidingUpPanel")
-
- - [Android Swipe-to-Dismiss Sample Code](https://github.com/romannurik/Android-SwipeToDismiss "Android Swipe-to-Dismiss Sample Code")
-
- - [android-ago](https://github.com/curioustechizen/android-ago "android-ago")
-
- - [DynamicGrid](https://github.com/askerov/DynamicGrid "DynamicGrid")
-
- - [Lightning Browser](https://github.com/anthonycr/Lightning-Browser "Lightning-Browser")
-
- - [typo.css](https://github.com/sofish/typo.css "typo.css")
-
-## License:
-
-_[Apache License, Version 2.0](https://github.com/mthli/Ninja/blob/master/LICENSE "Apache License, Version 2.0")_
+## License
+Apache License 2.0 — inherited from Ninja by mthli.

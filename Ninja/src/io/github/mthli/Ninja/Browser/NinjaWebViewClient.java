@@ -29,6 +29,7 @@ public class NinjaWebViewClient extends WebViewClient {
     private Context context;
 
     private AdBlock adBlock;
+    private RedirectAdBlocker redirectAdBlocker;
 
     private boolean white;
     public void updateWhite(boolean white) {
@@ -45,13 +46,22 @@ public class NinjaWebViewClient extends WebViewClient {
         this.ninjaWebView = ninjaWebView;
         this.context = ninjaWebView.getContext();
         this.adBlock = ninjaWebView.getAdBlock();
+        this.redirectAdBlocker = new RedirectAdBlocker(context);
         this.white = false;
         this.enable = true;
+    }
+
+    public RedirectAdBlocker getRedirectAdBlocker() {
+        return redirectAdBlocker;
     }
 
     @Override
     public void onPageStarted(WebView view, String url, Bitmap favicon) {
         super.onPageStarted(view, url, favicon);
+
+        if (redirectAdBlocker != null) {
+            redirectAdBlocker.onPageStart(url);
+        }
 
         // Bridge sirf AI chat sites ke liye on hota hai (TermuxBridge.ALLOWED_HOSTS).
         try {
@@ -73,6 +83,12 @@ public class NinjaWebViewClient extends WebViewClient {
         super.onPageFinished(view, url);
 
         injectAgent(view, url);
+
+        // TUXORA: kill meta-refresh auto-redirects and window.open() popups
+        // (JS-layer belt-and-suspenders — native layer already blocks these).
+        if (RedirectAdBlocker.isEnabled(context) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            view.evaluateJavascript(RedirectAdBlocker.getMetaRefreshKillerJs(), null);
+        }
 
         if (!ninjaWebView.getSettings().getLoadsImagesAutomatically()) {
             ninjaWebView.getSettings().setLoadsImagesAutomatically(true);
@@ -144,6 +160,13 @@ public class NinjaWebViewClient extends WebViewClient {
                 context.startActivity(intent);
                 return true;
             } catch (Exception e) {} // When intent fail will crash
+        }
+
+        // TUXORA: redirect / popup ad trap detection.
+        if (redirectAdBlocker != null
+                && redirectAdBlocker.shouldBlock(view.getUrl(), url)) {
+            io.github.mthli.Ninja.View.NinjaToast.show(context, R.string.toast_redirect_blocked);
+            return true; // cancel navigation — page stays on the original
         }
 
         white = adBlock.isWhite(url);

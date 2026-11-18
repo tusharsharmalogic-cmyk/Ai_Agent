@@ -112,6 +112,12 @@
                             android:summary="@string/setting_summary_adblock">
         </CheckBoxPreference>
 
+        <CheckBoxPreference android:key="@string/sp_redirect_block"
+                            android:defaultValue="true"
+                            android:title="@string/setting_title_redirect_block"
+                            android:summary="@string/setting_summary_redirect_block">
+        </CheckBoxPreference>
+
         <Preference android:title="@string/setting_title_whitelist"
                     android:summary="@string/setting_summary_whitelist">
         </Preference>
